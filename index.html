@@ -20,6 +20,8 @@
       padding: 10px;
       overflow-y: auto;
       background: #fff;
+      display: flex;
+      flex-direction: column;
     }
     .msg {
       margin-bottom: 10px;
@@ -64,11 +66,10 @@
   </div>
 
   <!-- Firebase -->
-<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
-
-<script>
-    // Инициализация Firebase
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+  <script>
+    // Конфигурация Firebase
     const firebaseConfig = {
       apiKey: "AIzaSyD9Yug0CgwHttCLx1rfSFrob3wFk5D17EY",
       authDomain: "chatttyyy.firebaseapp.com",
@@ -78,6 +79,7 @@
       appId: "1:977707838573:web:93711dcc7d1bd82edba364",
       databaseURL: "https://chatttyyy-default-rtdb.firebaseio.com"
     };
+
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
@@ -105,15 +107,36 @@
       }
     }
 
-    // Загружаем и отображаем сообщения в реальном времени
+    // Загружаем сообщения и удаляем старые
     db.ref("messages").orderByChild("timestamp").on("child_added", (snapshot) => {
-      const { name, text } = snapshot.val();
+      const { name, text, timestamp } = snapshot.val();
+      const key = snapshot.key;
+      const now = Date.now();
+
+      // Удалить сообщение, если старше 1 часа
+      if (now - timestamp > 3600000) {
+        db.ref("messages/" + key).remove();
+        return;
+      }
+
       const msg = document.createElement("div");
       msg.className = "msg" + (name === nameInput.value.trim() ? " you" : "");
       msg.textContent = `${name}: ${text}`;
       chat.appendChild(msg);
       chat.scrollTop = chat.scrollHeight;
     });
+
+    // Очистка старых сообщений при загрузке
+    function cleanupOldMessages() {
+      const cutoff = Date.now() - 3600000; // 1 час назад
+      db.ref("messages").orderByChild("timestamp").endAt(cutoff).once("value", (snapshot) => {
+        snapshot.forEach((child) => {
+          db.ref("messages/" + child.key).remove();
+        });
+      });
+    }
+
+    cleanupOldMessages(); // вызвать при загрузке страницы
   </script>
 </body>
 </html>
