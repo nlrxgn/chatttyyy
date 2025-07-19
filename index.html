@@ -64,17 +64,20 @@
   </div>
 
   <!-- Firebase -->
-  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
-  <script>
-    // 🔥 Замените на свою конфигурацию
-    const firebaseConfig = {   apiKey: "AIzaSyD9Yug0CgwHttCLx1rfSFrob3wFk5D17EY",   
-	authDomain: "chatttyyy.firebaseapp.com",   
-	projectId: "chatttyyy",   
-	storageBucket: "chatttyyy.firebasestorage.app",   
-	messagingSenderId: "977707838573",   
-	appId: "1:977707838573:web:93711dcc7d1bd82edba364" };
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
 
+<script>
+    // Инициализация Firebase
+    const firebaseConfig = {
+      apiKey: "AIzaSyD9Yug0CgwHttCLx1rfSFrob3wFk5D17EY",
+      authDomain: "chatttyyy.firebaseapp.com",
+      projectId: "chatttyyy",
+      storageBucket: "chatttyyy.appspot.com",
+      messagingSenderId: "977707838573",
+      appId: "1:977707838573:web:93711dcc7d1bd82edba364",
+      databaseURL: "https://chatttyyy-default-rtdb.firebaseio.com"
+    };
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
@@ -82,20 +85,31 @@
     const nameInput = document.getElementById("name");
     const textInput = document.getElementById("text");
 
+    function escapeHTML(str) {
+      return str.replace(/[&<>"']/g, (m) => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+      }[m]));
+    }
+
     function send() {
       const name = nameInput.value.trim();
       const text = textInput.value.trim();
       if (name && text) {
-        db.ref("messages").push({ name, text });
+        db.ref("messages").push({
+          name: escapeHTML(name),
+          text: escapeHTML(text),
+          timestamp: Date.now()
+        });
         textInput.value = "";
+        textInput.focus();
       }
     }
 
-    // Реальное обновление
-    db.ref("messages").on("child_added", (snapshot) => {
+    // Загружаем и отображаем сообщения в реальном времени
+    db.ref("messages").orderByChild("timestamp").on("child_added", (snapshot) => {
       const { name, text } = snapshot.val();
       const msg = document.createElement("div");
-      msg.className = "msg" + (name === nameInput.value ? " you" : "");
+      msg.className = "msg" + (name === nameInput.value.trim() ? " you" : "");
       msg.textContent = `${name}: ${text}`;
       chat.appendChild(msg);
       chat.scrollTop = chat.scrollHeight;
